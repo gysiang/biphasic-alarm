@@ -12,8 +12,8 @@ const urlsToCache = [
   './manifest.json',
 
   // --- ICON FILES (Using relative path) ---
-  'images/android-chrome-192x192.png',
-  'images/android-chrome-512x512.png',
+  './images/android-chrome-192x192.png',
+  './images/android-chrome-512x512.png',
 
   // External CDNs remain excluded to prevent CORS failure during caching.
 ];
