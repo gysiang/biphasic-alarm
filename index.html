@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biphasic Sleep Tracker</title>
 
+    <!-- PWA Manifest Link -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+
     <!-- Load Tailwind CSS from CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -13,7 +17,6 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
     <!-- Load Babel Standalone for JSX conversion -->
-    <!-- Important: This is only suitable for small, single-file apps and not for production environments. -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -32,9 +35,22 @@
     <!-- The actual React component code -->
     <script type="text/babel">
       // -------------------------------------------------------------------------
-      // FIX: Removed all 'import' statements (Firebase and Lucide) which were
-      // causing 'ReferenceError: require is not defined' in the browser's Babel
-      // standalone environment. We now rely only on React/Hooks from the CDNs.
+      // PWA: Service Worker Registration
+      // -------------------------------------------------------------------------
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('Service Worker registered:', registration.scope);
+            })
+            .catch(error => {
+              console.error('Service Worker registration failed:', error);
+            });
+        });
+      }
+
+      // -------------------------------------------------------------------------
+      // APPLICATION LOGIC (UNMODIFIED)
       // -------------------------------------------------------------------------
 
       const { useState, useEffect, useMemo, useCallback } = React;
