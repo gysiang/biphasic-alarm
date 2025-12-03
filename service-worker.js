@@ -1,22 +1,21 @@
 // Service Worker version (increment this to force browser to update cache)
-const CACHE_NAME = 'sleep-tracker-v4'; // Incrementing version again
+const CACHE_NAME = 'sleep-tracker-v5'; // Incrementing version to force immediate update
 
 // List of files to cache for offline use
 const urlsToCache = [
   // --- CORE LOCAL FILES ---
-  // Using absolute path with repo name to match GitHub Pages structure
-  '/biphasic-alarm/',
-  '/biphasic-alarm/index.html',
-  '/biphasic-alarm/manifest.json',
+  // FIX: Reverting to reliable relative paths ('./') for local assets.
+  // This helps ensure the files are cached correctly regardless of the registration scope,
+  // provided the manifest and HTML link paths are also relative.
+  './',
+  './index.html',
+  './manifest.json',
 
-  // --- ICON FILES (MUST MATCH MANIFEST PATH) ---
+  // --- ICON FILES (Using relative path) ---
   './android-chrome-192x192.png',
   './android-chrome-512x512.png',
 
-  // --- IMPORTANT FIX: Removed all external CDNs from caching (Tailwind, React, Babel)
-  // because service workers cannot cache cross-origin resources without CORS headers,
-  // causing the "Failed to fetch" error. The app will require network access for these,
-  // but core logic and PWA status will be fixed.
+  // External CDNs remain excluded to prevent CORS failure during caching.
 ];
 
 // Install event: Caches all static assets
@@ -29,6 +28,7 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
       .catch(error => {
+        // Log caching failures, likely due to a path issue
         console.error('[Service Worker] Caching failed:', error);
       })
   );
