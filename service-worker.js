@@ -10,8 +10,8 @@ const urlsToCache = [
   '/biphasic-alarm/manifest.json',
 
   // --- ICON FILES (MUST MATCH MANIFEST PATH) ---
-  '/biphasic-alarm/android-chrome-192x192.png',
-  '/biphasic-alarm/android-chrome-512x512.png',
+  '/biphasic-alarm/blob/main/android-chrome-192x192.png',
+  '/biphasic-alarm/blob/main/android-chrome-512x512.png',
 
   // --- IMPORTANT FIX: Removed all external CDNs from caching (Tailwind, React, Babel)
   // because service workers cannot cache cross-origin resources without CORS headers,
