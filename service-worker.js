@@ -1,5 +1,5 @@
 // Service Worker version (increment this to force browser to update cache)
-const CACHE_NAME = 'sleep-tracker-v5'; // Incrementing version to force immediate update
+const CACHE_NAME = 'sleep-tracker-v6'; // Incrementing version for new path structure
 
 // List of files to cache for offline use
 const urlsToCache = [
@@ -11,7 +11,7 @@ const urlsToCache = [
   './index.html',
   './manifest.json',
 
-  // --- ICON FILES (Using relative path) ---
+  // --- ICON FILES (Using new 'images/' relative path) ---
   './images/android-chrome-192x192.png',
   './images/android-chrome-512x512.png',
 
