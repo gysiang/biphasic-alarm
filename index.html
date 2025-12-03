@@ -6,7 +6,7 @@
     <title>Biphasic Sleep Tracker</title>
 
     <!-- PWA Manifest Link -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="biphasic-alarm/manifest.json">
     <meta name="theme-color" content="#4f46e5">
 
     <!-- Load Tailwind CSS from CDN -->
@@ -39,7 +39,7 @@
       // -------------------------------------------------------------------------
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
+          navigator.serviceWorker.register('/biphasic-alarm/service-worker.js', { scope: '/biphasic-alarm/' })
             .then(registration => {
               console.log('Service Worker registered:', registration.scope);
             })
