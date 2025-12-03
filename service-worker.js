@@ -1,11 +1,16 @@
 // Service Worker version (increment this to force browser to update cache)
-const CACHE_NAME = 'sleep-tracker-v1';
+const CACHE_NAME = 'sleep-tracker-v2'; // Incrementing version to force immediate update
 
 // List of files to cache for offline use
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
+  // --- REQUIRED ICON FILES ADDED ---
+  // These files must be accessible and cached for PWA installation validation
+  '/android-chrome-192x192.png',
+  '/android-chrome-512x512.png',
+  // ---------------------------------
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.development.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.development.js',
