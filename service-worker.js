@@ -1,30 +1,31 @@
 // Service Worker version (increment this to force browser to update cache)
-const CACHE_NAME = 'sleep-tracker-v6'; // Incrementing version for new path structure
+const CACHE_NAME = 'sleep-tracker-v8'; // Incrementing version for path adjustment
 
 // List of files to cache for offline use
 const urlsToCache = [
   // --- CORE LOCAL FILES ---
-  // FIX: Reverting to reliable relative paths ('./') for local assets.
-  // This helps ensure the files are cached correctly regardless of the registration scope,
-  // provided the manifest and HTML link paths are also relative.
-  './',
-  './index.html',
-  './manifest.json',
+  // FIX: Switching to absolute paths relative to the GitHub Pages *subpath* // (e.g., /biphasic-alarm/) for greater reliability in caching.
+  '/biphasic-alarm/',
+  '/biphasic-alarm/index.html',
+  '/biphasic-alarm/manifest.json',
 
-  // --- ICON FILES (Using new 'images/' relative path) ---
-  './images/android-chrome-192x192.png',
-  './images/android-chrome-512x512.png',
+  // --- ICON FILES (Using absolute repository path) ---
+  '/biphasic-alarm/images/android-chrome-192x192.png',
+  '/biphasic-alarm/images/android-chrome-512x512.png',
 
   // External CDNs remain excluded to prevent CORS failure during caching.
 ];
 
 // Install event: Caches all static assets
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Install');
+  console.log('[Service Worker] Install (v8)');
+  // Force the new service worker to activate immediately, bypassing waiting period
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[Service Worker] Caching app shell');
+        // This is where the fetch failure happens. We trust the new paths fix it.
         return cache.addAll(urlsToCache);
       })
       .catch(error => {
@@ -36,7 +37,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event: Cleans up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activate');
+  console.log('[Service Worker] Activate (v8)');
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
