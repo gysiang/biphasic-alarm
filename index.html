@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biphasic Sleep Tracker</title>
+
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Load React and ReactDOM from CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Load Babel Standalone for JSX conversion -->
+    <!-- Important: This is only suitable for small, single-file apps and not for production environments. -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* Ensure the body and html take up the full height for centering */
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+      }
+    </style>
+</head>
+<body>
+    <!-- The root element where the React app will be rendered -->
+    <div id="root"></div>
+
+    <!-- The actual React component code -->
+    <script type="text/babel">
+      // -------------------------------------------------------------------------
+      // FIX: Removed all 'import' statements (Firebase and Lucide) which were
+      // causing 'ReferenceError: require is not defined' in the browser's Babel
+      // standalone environment. We now rely only on React/Hooks from the CDNs.
+      // -------------------------------------------------------------------------
+
+      const { useState, useEffect, useMemo, useCallback } = React;
+
+      // Placeholder variables (Firebase/Auth are not available in this static deployment)
+      const appId = 'sleep-tracker-default';
+      const firebaseConfig = null;
+      const initialAuthToken = null;
+
+      const SCHEDULE_EVENTS = [
+        { minutes: 21 * 60, type: 'SLEEP', label: 'Core 1 Start (9 PM)' },
+        { minutes: 1 * 60, type: 'WAKE', label: 'Core 1 End (1 AM)' },
+        { minutes: 2 * 60, type: 'SLEEP', label: 'Core 2 Start (2 AM)' },
+        { minutes: 5 * 60, type: 'WAKE', label: 'Core 2 End (5 AM)' },
+      ];
+
+      const formatMinutesToTime = (totalMinutes) => {
+        const h = Math.floor(totalMinutes / 60) % 24;
+        const m = totalMinutes % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      };
+
+      const formatDuration = (totalSeconds) => {
+        if (totalSeconds < 0) totalSeconds = 0;
+        const days = Math.floor(totalSeconds / (60 * 60 * 24));
+        const remainingSeconds = totalSeconds % (60 * 60 * 24);
+        const h = Math.floor(remainingSeconds / 3600);
+        const m = Math.floor((remainingSeconds % 3600) / 60);
+        const s = remainingSeconds % 60;
+
+        const hh = String(h + days * 24).padStart(2, '0');
+        const mm = String(m).padStart(2, '0');
+        const ss = String(s).padStart(2, '0');
+
+        return `${hh}:${mm}:${ss}`;
+      };
+
+      const NextEventCard = ({ event, countdown }) => {
+        const isSleep = event.type === 'SLEEP';
+        const timeStr = formatMinutesToTime(event.minutes);
+        const formattedCountdown = formatDuration(countdown);
+
+        return (
+          <div className={`p-6 rounded-xl shadow-2xl transition-all duration-300 w-full mb-6 ${isSleep ? 'bg-indigo-700 text-white' : 'bg-emerald-500 text-white'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-3xl font-extrabold tracking-tight">
+                {isSleep ? 'Time to Sleep' : 'Time to Wake Up'}
+              </h2>
+              {/* Icons replaced with Emojis */}
+              {isSleep ? '🌙' : '☀️'}
+            </div>
+            <p className="text-lg font-light mb-4">
+              Next Event: <span className="font-semibold">{event.label}</span> at <span className="font-semibold">{timeStr}</span>
+            </p>
+            <div className="text-center">
+              <p className="text-4xl sm:text-6xl font-mono font-bold">
+                {formattedCountdown}
+              </p>
+              <p className="text-sm uppercase tracking-wider mt-1 opacity-80">
+                Remaining
+              </p>
+            </div>
+          </div>
+        );
+      };
+
+      const CurrentStatus = ({ currentMinutes }) => {
+        let isAsleep = false;
+        let currentBlock = 'Unknown Period';
+
+        // 9 PM (1260) to 1 AM (60) - Sleep 1 (Crosses Midnight)
+        if (currentMinutes >= 1260 || (currentMinutes >= 0 && currentMinutes < 60)) {
+          isAsleep = true;
+          currentBlock = 'Core Sleep 1 (9 PM - 1 AM)';
+        }
+        // 2 AM (120) to 5 AM (300) - Sleep 2
+        else if (currentMinutes >= 120 && currentMinutes < 300) {
+          isAsleep = true;
+          currentBlock = 'Core Sleep 2 (2 AM - 5 AM)';
+        }
+        // 1 AM (60) to 2 AM (120) - Wake 1
+        else if (currentMinutes >= 60 && currentMinutes < 120) {
+          isAsleep = false;
+          currentBlock = 'Awake Period 1 (1 AM - 2 AM)';
+        }
+        // 5 AM (300) to 9 PM (1260) - Wake 2
+        else if (currentMinutes >= 300 && currentMinutes < 1260) {
+          isAsleep = false;
+          currentBlock = 'Awake Period 2 (5 AM - 9 PM)';
+        }
+
+        const statusText = isAsleep ? 'Sleeping' : 'Awake';
+        const statusColor = isAsleep ? 'bg-indigo-500' : 'bg-emerald-500';
+
+        return (
+          <div className={`p-4 rounded-xl shadow-md transition-all duration-300 w-full mb-4 ${statusColor} text-white`}>
+            <div className="flex items-center justify-center">
+              {isAsleep ? '🌙' : '☀️'}
+              <span className="text-xl font-semibold ml-2">{statusText}</span>
+            </div>
+            <p className="text-sm opacity-90 text-center mt-1">
+              Currently in: {currentBlock}
+            </p>
+          </div>
+        );
+      };
+
+      function App() {
+        const [now, setNow] = useState(new Date());
+        const [alarmEnabled, setAlarmEnabled] = useState(true);
+        const ALARM_THRESHOLD_SECONDS = 5;
+
+        // Simplified playBeep function for GitHub Pages context
+        const playBeep = useCallback((frequency = 440, duration = 0.5) => {
+          if (!alarmEnabled) return;
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) {
+            console.warn("Web Audio API not supported.");
+            return;
+          }
+
+          try {
+            const context = new AudioContext();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+            gainNode.gain.setValueAtTime(0.5, context.currentTime);
+
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + duration);
+
+            oscillator.start();
+            oscillator.stop(context.currentTime + duration);
+
+            setTimeout(() => {
+              context.close();
+            }, duration * 1000 + 50);
+          } catch (e) {
+            console.error("Error playing audio:", e);
+          }
+        }, [alarmEnabled]);
+
+
+        useEffect(() => {
+          const timerId = setInterval(() => {
+            setNow(new Date());
+          }, 1000);
+          return () => clearInterval(timerId);
+        }, []);
+
+        const { currentMinutes, nextEvent, countdownSeconds } = useMemo(() => {
+          const totalMinutesInDay = 24 * 60;
+          const currentMins = now.getHours() * 60 + now.getMinutes();
+          const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+          let closestEvent = null;
+          let minCountdown = Infinity;
+
+          for (const event of SCHEDULE_EVENTS) {
+            const eventMins = event.minutes;
+            const eventSeconds = eventMins * 60;
+            let diffSeconds;
+
+            if (eventSeconds > currentSeconds) {
+              diffSeconds = eventSeconds - currentSeconds;
+            } else {
+              const totalSecondsInDay = totalMinutesInDay * 60;
+              diffSeconds = totalSecondsInDay - currentSeconds + eventSeconds;
+            }
+
+            if (diffSeconds < minCountdown) {
+              minCountdown = diffSeconds;
+              closestEvent = event;
+            }
+          }
+
+          return {
+            currentMinutes: currentMins,
+            nextEvent: closestEvent,
+            countdownSeconds: minCountdown,
+          };
+        }, [now]);
+
+        useEffect(() => {
+          if (countdownSeconds <= ALARM_THRESHOLD_SECONDS && countdownSeconds > 0) {
+            const freq = nextEvent?.type === 'WAKE' ? 660 : 220;
+            playBeep(freq, 0.2);
+          }
+        }, [countdownSeconds, nextEvent, playBeep]);
+
+
+        const currentTimeFormatted = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        const nextEventAction = nextEvent?.type === 'SLEEP' ? 'Sleep' : 'Wake Up';
+        const isTimeUp = countdownSeconds <= 0;
+
+        // Simplified rendering for external deployment, omitting Firebase setup details
+        return (
+          <div className="min-h-screen bg-gray-50 flex items-start sm:items-center justify-center p-4">
+            <div className={`w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 sm:p-8 transition-all duration-300 ${isTimeUp ? 'ring-8 ring-red-400' : ''}`}>
+              <header className="mb-6 border-b pb-4">
+                <h1 className="text-4xl font-black text-gray-900 flex items-center">
+                  🔄 Biphasic Sleep Tracker
+                </h1>
+                <p className="text-gray-500 mt-2 text-sm">
+                  Tracking Schedule: Core 1 (9 PM - 1 AM) & Core 2 (2 AM - 5 AM)
+                </p>
+              </header>
+
+              <div className="flex justify-between items-center mb-6 p-3 bg-gray-100 rounded-xl">
+                <div className="flex items-center">
+                  ⏰
+                  <span className="text-xl font-bold text-gray-800 font-mono ml-2">{currentTimeFormatted}</span>
+                </div>
+
+                <button
+                  onClick={() => setAlarmEnabled(!alarmEnabled)}
+                  className={`p-2 rounded-full transition-colors duration-200 shadow-md flex items-center ${alarmEnabled ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'}`}
+                  title={alarmEnabled ? "Disable Alarm" : "Enable Alarm"}
+                >
+                  {alarmEnabled ? '🔔 ON' : '🔕 OFF'}
+                  <span className="ml-2 hidden sm:inline text-sm">Alarm</span>
+                </button>
+              </div>
+
+              {isTimeUp && (
+                  <div className="p-4 mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg flex items-center justify-center animate-pulse">
+                      🔊
+                      <p className="font-bold text-lg ml-3">
+                          TIME TO {nextEventAction.toUpperCase()}!
+                      </p>
+                  </div>
+              )}
+
+              <CurrentStatus currentMinutes={currentMinutes} />
+
+              {nextEvent && (
+                <NextEventCard event={nextEvent} countdown={countdownSeconds} />
+              )}
+
+              <h3 className="text-xl font-bold text-gray-800 mb-4 mt-6">
+                Your Daily Cycle
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-indigo-100 rounded-lg">
+                  <span className="font-semibold text-indigo-800">Core Sleep 1</span>
+                  <span className="font-mono text-indigo-700">09:00 PM - 01:00 AM (4 hr)</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-emerald-100 rounded-lg">
+                  <span className="font-semibold text-emerald-800">Awake Period 1 (Nap/Awake)</span>
+                  <span className="font-mono text-emerald-700">01:00 AM - 02:00 AM (1 hr)</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-indigo-100 rounded-lg">
+                  <span className="font-semibold text-indigo-800">Core Sleep 2</span>
+                  <span className="font-mono text-indigo-700">02:00 AM - 05:00 AM (3 hr)</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-emerald-100 rounded-lg">
+                  <span className="font-semibold text-emerald-800">Awake Period 2 (Main)</span>
+                  <span className="font-mono text-emerald-700">05:00 AM - 09:00 PM (16 hr)</span>
+                </div>
+              </div>
+
+              <footer className="mt-8 pt-4 border-t text-xs text-gray-400 text-center">
+                  <p>Deployment using Babel Standalone. Firebase is disabled for this static deployment.</p>
+              </footer>
+            </div>
+          </div>
+        );
+      }
+
+      // Render the App component
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
