@@ -1,20 +1,22 @@
 // Service Worker version (increment this to force browser to update cache)
-const CACHE_NAME = 'sleep-tracker-v3'; // Incrementing version to force immediate update
+const CACHE_NAME = 'sleep-tracker-v4'; // Incrementing version again
 
 // List of files to cache for offline use
 const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  // --- FIXED: Using relative paths for local files ---
-  // If the app is hosted at a subpath (e.g., /repo-name/), absolute paths (starting with /) fail.
-  './android-chrome-192x192.png',
-  './android-chrome-512x512.png',
-  // ---------------------------------------------------
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/react@18/umd/react.development.js',
-  'https://unpkg.com/react-dom@18/umd/react-dom.development.js',
-  'https://unpkg.com/@babel/standalone/babel.min.js'
+  // --- CORE LOCAL FILES ---
+  // Using absolute path with repo name to match GitHub Pages structure
+  '/biphasic-alarm/',
+  '/biphasic-alarm/index.html',
+  '/biphasic-alarm/manifest.json',
+
+  // --- ICON FILES (MUST MATCH MANIFEST PATH) ---
+  '/biphasic-alarm/android-chrome-192x192.png',
+  '/biphasic-alarm/android-chrome-512x512.png',
+
+  // --- IMPORTANT FIX: Removed all external CDNs from caching (Tailwind, React, Babel)
+  // because service workers cannot cache cross-origin resources without CORS headers,
+  // causing the "Failed to fetch" error. The app will require network access for these,
+  // but core logic and PWA status will be fixed.
 ];
 
 // Install event: Caches all static assets
@@ -25,6 +27,9 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         console.log('[Service Worker] Caching app shell');
         return cache.addAll(urlsToCache);
+      })
+      .catch(error => {
+        console.error('[Service Worker] Caching failed:', error);
       })
   );
 });
@@ -50,18 +55,25 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event: Serves cached content or fetches from network
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Cache hit - return response
-      if (response) {
-        return response;
-      }
+  // Check if this is a request for a file we want to cache-first (e.g., local assets)
+  const url = new URL(event.request.url);
+  const isLocalAsset = url.origin === location.origin;
 
-      // Not in cache - fetch from network
-      return fetch(event.request).catch(() => {
-        // This is where you could return an offline page if needed
-        console.log('[Service Worker] Fetch failed, no cache match:', event.request.url);
-      });
-    })
-  );
+  if (isLocalAsset) {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        // Cache hit - return cached response
+        if (response) {
+          return response;
+        }
+
+        // Cache miss - fetch from network
+        return fetch(event.request);
+      })
+    );
+  } else {
+    // For external CDNs (like Tailwind), use network only (or network-first)
+    // to avoid CORS errors during caching. We rely on the browser's normal network access.
+    event.respondWith(fetch(event.request));
+  }
 });
